@@ -4,6 +4,8 @@
   const navigation = [
     { name: 'Overview', icon: BarChart3, current: true },
     { name: 'Users', icon: Users, current: false },
+    { name: 'CRM', icon: TrendingUp, current: false },
+
   ];
 </script>
 
