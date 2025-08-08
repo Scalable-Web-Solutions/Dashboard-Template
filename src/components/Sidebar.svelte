@@ -4,10 +4,6 @@
   const navigation = [
     { name: 'Overview', icon: BarChart3, current: true },
     { name: 'Users', icon: Users, current: false },
-    { name: 'Traffic', icon: Globe, current: false },
-    { name: 'Conversions', icon: Target, current: false },
-    { name: 'Growth', icon: TrendingUp, current: false },
-    { name: 'Settings', icon: Settings, current: false },
   ];
 </script>
 
@@ -17,7 +13,8 @@
       {#each navigation as item}
         <li>
           <a
-            href={item.name.toLocaleLowerCase()}
+            href={item.name.toLocaleLowerCase() === 'overview' ? '/' : item.name.toLocaleLowerCase()}
+
             class={`group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors
               ${item.current
                 ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'

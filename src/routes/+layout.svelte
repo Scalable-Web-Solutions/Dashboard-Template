@@ -17,10 +17,13 @@
     import { onMount } from 'svelte';
     import Header from '../components/Header.svelte';
     import Sidebar from '../components/Sidebar.svelte';
+    import { authReady, user, waitForAuth } from '$lib/stores/auth';
+    import Login from '../components/Login.svelte';
 
 	let { children } = $props();
 
-	onMount(() => {
+	onMount(async () => {
+		await waitForAuth();
 		function initTracking()
 		{
 			if(window.analytics){
@@ -43,6 +46,12 @@
   <Header />
   <div class="flex">
     <Sidebar />
-    {@render children?.()}
+    {#if !$authReady}
+        <div class="p-6">Loading auth…</div>
+    {:else if $user}
+        {@render children?.()}
+    {:else}
+        <Login />
+    {/if}
   </div>
 </div>
