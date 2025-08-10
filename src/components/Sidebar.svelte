@@ -2,18 +2,24 @@
   import { BarChart3, Users, TrendingUp, Target, Globe, Settings } from 'lucide-svelte';
 
   const navigation = [
-    { name: 'Overview', icon: BarChart3, current: true },
+    { name: 'Overview', icon: BarChart3, current: false },
     { name: 'Users', icon: Users, current: false },
     { name: 'CRM', icon: TrendingUp, current: false },
-
   ];
+
 </script>
 
 <div class="bg-gray-50 w-64 min-h-screen border-r border-gray-200">
   <nav class="mt-8 px-4">
     <ul class="space-y-2">
       {#each navigation as item}
-        <li>
+        <li on:click={() => {
+          for (let i of navigation) i.current = false;
+          item.current = true;
+        }}>
+
+
+
           <a
             href={item.name.toLocaleLowerCase() === 'overview' ? '/' : item.name.toLocaleLowerCase()}
 

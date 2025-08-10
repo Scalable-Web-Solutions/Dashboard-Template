@@ -56,7 +56,7 @@
 </script>
 
 <div class="p-6 space-y-6 w-full">
-  <div class="overflow-auto border rounded-xl">
+  <div class="overflow-auto shadow-md rounded-xlbg-gray-50">
     <table class="min-w-full text-sm">
       <thead class="bg-gray-50">
         <tr>
@@ -76,7 +76,7 @@
             <td class="p-3">{it.phone}</td>
             <td class="p-3 text-right">
               <button
-                class="px-3 py-1 rounded bg-black text-white"
+                class="px-3 py-1 rounded bg-blue-500 text-white"
                 on:click={() => openDetails(it)}
               >
                 Details
@@ -112,7 +112,7 @@
     <!-- All questionnaire fields -->
     <div class="grid md:grid-cols-2 gap-4">
       {#each detailPairs(active) as [k, v]}
-        <div class="border rounded-lg p-3">
+        <div class="bg-gray-50 shadow-md rounded-lg p-3">
           <div class="text-xs uppercase tracking-wide text-gray-500 mb-1">{label(k)}</div>
           <div class="whitespace-pre-wrap">{v}</div>
         </div>
