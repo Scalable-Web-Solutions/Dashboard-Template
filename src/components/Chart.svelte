@@ -44,7 +44,7 @@
   };
 </script>
 
-<div class="rounded-xl border border-gray-200 bg-white px-6 pt-4 pb-2 shadow-sm">
+<div class="rounded-xl bg-white px-6 pt-4 pb-2">
   <div class="flex items-center justify-between">
     <span class="text-sm text-gray-400 font-medium">{title}</span>
     <div class="flex items-center gap-2">

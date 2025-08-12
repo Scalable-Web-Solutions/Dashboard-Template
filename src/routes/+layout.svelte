@@ -42,8 +42,7 @@
 </svelte:head>
 
 
-<div class="min-h-screen bg-gray-50">
-  <Header />
+<div class="min-h-screen bg-[#f5f6fd] inter">
   <div class="flex">
     <Sidebar />
     {#if !$authReady}
