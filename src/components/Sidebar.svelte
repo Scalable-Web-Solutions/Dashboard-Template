@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { BarChart3, Users, TrendingUp, Target, Globe, Settings } from 'lucide-svelte';
+  import { BarChart3, Users, TrendingUp } from 'lucide-svelte';
 
   const navigation = [
     { name: 'Overview', icon: BarChart3, current: false },
@@ -10,7 +10,7 @@
 </script>
 
 <div class="bg-[#421a9b] w-64 min-h-screen text-white">
-  <nav class="mt-8 px-4 flex flex-col">
+  <nav class="mt-8 px-4 flex flex-col items-baseline justify-between">
     <div class="flex items-center justify-between">
       <a href="/" class="flex items-center">
         <img src="/logo.svg" alt="logo" class="h-8 mr-2" />
