@@ -1,55 +1,57 @@
 <script lang="ts">
-  import { BarChart3, Users, TrendingUp } from 'lucide-svelte';
+  import { BarChart3, Users, TrendingUp, Search, Settings as SettingsIcon, FileSpreadsheet, ArrowLeft, ChartBar, Users as UsersIcon, ArrowUpRightFromCircle } from 'lucide-svelte';
 
-  const navigation = [
-    { name: 'Overview', icon: BarChart3, current: false },
-    { name: 'Users', icon: Users, current: false },
-    { name: 'CRM', icon: TrendingUp, current: false },
+  type NavItem = { name: string; icon: any; href: string };
+  const navigation: NavItem[] = [
+    { name: 'Overview', icon: BarChart3, href: '/' },
+    { name: 'Users', icon: Users, href: '/users' },
+    { name: 'CRM', icon: TrendingUp, href: '/crm' },
   ];
-
+  let current = 'Overview';
 </script>
 
-<div class="bg-[#421a9b] w-64 min-h-screen text-white">
-  <nav class="mt-8 px-4 flex flex-col items-baseline justify-between">
-    <div class="flex items-center justify-between">
-      <a href="/" class="flex items-center">
-        <img src="/logo.svg" alt="logo" class="h-8 mr-2" />
-        <span class="text-2xl font-bold">Dashboard</span>
-      </a>
+<!-- Fixed sidebar: stays put while page scrolls -->
+<aside class="fixed inset-y-0 left-0 w-64 bg-[#421a9b] text-white">
+  <nav class="h-full flex flex-col px-4 py-6">
+    <!-- top quick actions -->
+    <div class="flex items-center justify-between px-2 pt-4">
+      <Search class="h-5 w-5 opacity-90" />
+      <SettingsIcon class="h-5 w-5 opacity-90" />
+      <FileSpreadsheet class="h-5 w-5 opacity-90" />
     </div>
 
-    <ul class="space-y-2">
+    <!-- main nav -->
+    <ul class="h-full flex flex-col justify-center gap-10">
       {#each navigation as item}
-        <!-- svelte-ignore a11y_click_events_have_key_events -->
-        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-        <li on:click={() => {
-          for (let i of navigation) i.current = false;
-          item.current = true;
-        }}>
-
-
-
+        <li>
           <a
-            href={item.name.toLocaleLowerCase() === 'overview' ? '/' : item.name.toLocaleLowerCase()}
-
-            class={`group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors
-              ${item.current
-                ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
-                : 'text-white'
-              }`}
+            href={item.href}
+            class="relative group flex items-center gap-3 rounded-xl px-3 py-2 outline-none transition
+                   hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-white/60"
+            aria-current={current === item.name ? 'page' : undefined}
+            on:click|preventDefault={() => (current = item.name)}
           >
-            <svelte:component
-              this={item.icon}
-              class={`mr-3 h-5 w-5 ${
-                item.current
-                  ? 'text-blue-500'
-                  : 'text-gray-400 group-hover:text-gray-500'
-              }`}
-            />
-            {item.name}
+            <!-- active bar -->
+            <span class={`absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r ${current === item.name ? 'bg-white' : 'bg-transparent'}`} />
+            <svelte:component this={item.icon} class={`h-5 w-5 ${current === item.name ? 'text-white' : 'text-white/70 group-hover:text-white'}`} />
+            <span class={`${current === item.name ? 'text-white' : 'text-white/80 group-hover:text-white'} text-sm font-medium`}>{item.name}</span>
           </a>
         </li>
       {/each}
+      <button class="w-full bg-[#37188B] hover:opacity-70 flex items-center justify-center gap-2 rounded-xl px-3 py-4 outline-none transition focus-visible:ring-2 focus-visible:ring-white/60">
+        <ArrowUpRightFromCircle class="h-5 w-5 opacity-90" />
+        <span class="text-sm font-medium">Live Site</span>
+      </button>
     </ul>
+
+    <!-- push footer to bottom -->
+    <div class="mt-auto" />
+
+    <!-- bottom actions -->
+    <div class="flex items-center justify-between px-2 pt-4">
+      <ArrowLeft class="h-5 w-5 opacity-90" />
+      <ChartBar class="h-5 w-5 opacity-90" />
+      <UsersIcon class="h-5 w-5 opacity-90" />
+    </div>
   </nav>
-</div>
+</aside>

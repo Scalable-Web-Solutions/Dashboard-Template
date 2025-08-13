@@ -19,6 +19,7 @@
     import Sidebar from '../components/Sidebar.svelte';
     import { authReady, user, waitForAuth } from '$lib/stores/auth';
     import Login from '../components/Login.svelte';
+	import bg from "$lib/assets/dashboardbg.png"
 
 	let { children } = $props();
 
@@ -38,19 +39,27 @@
 </script>
 
 <svelte:head>
-	<link rel="icon" href={favicon} />
+  <link rel="icon" href={favicon} />
 </svelte:head>
 
+<!-- Page shell -->
+<div class="min-h-screen inter">
+  <img src={bg} alt="" class="fixed top-0 left-0 h-full w-full object-cover -z-10">
 
-<div class="min-h-screen bg-[#f5f6fd] inter">
-  <div class="flex">
-    <Sidebar />
+  <!-- Fixed sidebar lives outside the scrolling flow -->
+  <Sidebar />
+
+  <!-- Content: offset by the sidebar width (64 = 16rem) -->
+  <main class="ml-64 min-h-screen overflow-y-auto">
     {#if !$authReady}
-        <div class="p-6">Loading auth…</div>
+      <div>Loading auth…</div>
     {:else if $user}
-        {@render children?.()}
+      {@render children?.()}
     {:else}
+      <!-- If Login should also be centered etc., wrap as you like -->
+      <div class="max-w-xl mx-auto">
         <Login />
+      </div>
     {/if}
-  </div>
-</div>
+  </main>
+</div>	

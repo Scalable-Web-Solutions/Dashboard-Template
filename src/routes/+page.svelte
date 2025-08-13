@@ -44,7 +44,7 @@
   }
 </script>
 
-<main class="flex-1 p-6">
+<main class="flex-1 p-6 bg-[#F4F7FD]">
   {#if loading}
     <div class="flex items-center justify-center py-12">Loading dashboard...</div>
   {:else}
@@ -61,12 +61,9 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
       <Chart title="Page Views This Week" data={pageViewsChart} labels={pageViewsLabels} type="bar" />
-      <Chart title="Sessions This Week" data={sessionsChart} labels={sessionsLabels} type="line" />
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <TrafficSources />
-      <RecentActivity />
+      <Chart title="Page Views This Week" data={pageViewsChart} labels={pageViewsLabels} type="bar" />
+      <Chart title="Page Views This Week" data={pageViewsChart} labels={pageViewsLabels} type="bar" />
+      <Chart title="Page Views This Week" data={pageViewsChart} labels={pageViewsLabels} type="bar" />
     </div>
   {/if}
 </main>
