@@ -8,7 +8,9 @@
   export let title: string;
   export let data: number[];
   export let labels: string[];
-  export let type: 'line' | 'bar' | 'area' = 'area';
+  export let type: 'line' | 'bar' | 'area' | 'pie' = 'area';
+  export let legend: boolean = true;
+  export let colors: string[] = [];
 
   $: options = {
     chart: {

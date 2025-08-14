@@ -43,9 +43,7 @@
 </svelte:head>
 
 <!-- Page shell -->
-<div class="min-h-screen inter">
-  <img src={bg} alt="" class="fixed top-0 left-0 h-full w-full object-cover -z-10">
-
+<div class="min-h-screen inter bg-[#F4F7FD]">
   <!-- Fixed sidebar lives outside the scrolling flow -->
   <Sidebar />
 

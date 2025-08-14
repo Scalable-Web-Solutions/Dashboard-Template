@@ -60,9 +60,7 @@
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-      <Chart title="Page Views This Week" data={pageViewsChart} labels={pageViewsLabels} type="bar" />
-      <Chart title="Page Views This Week" data={pageViewsChart} labels={pageViewsLabels} type="bar" />
-      <Chart title="Page Views This Week" data={pageViewsChart} labels={pageViewsLabels} type="bar" />
+      <Chart title="Page Views This Week" data={pageViewsChart} labels={pageViewsLabels} type="area" />
       <Chart title="Page Views This Week" data={pageViewsChart} labels={pageViewsLabels} type="bar" />
     </div>
   {/if}
