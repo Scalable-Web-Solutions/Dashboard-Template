@@ -8,6 +8,14 @@
     { name: 'CRM', icon: TrendingUp, href: '/crm' },
   ];
   let current = 'Overview';
+
+  const navigate = (href: string) => {
+    current = href;
+    window.location.href = href;
+  };
+
+
+
 </script>
 
 <!-- Fixed sidebar: stays put while page scrolls -->
@@ -23,7 +31,9 @@
     <!-- main nav -->
     <ul class="h-full flex flex-col justify-center gap-10">
       {#each navigation as item}
-        <li>
+        <li on:click={() => navigate(item.href)}>
+
+
           <a
             href={item.href}
             class="relative group flex items-center gap-3 rounded-xl px-3 py-2 outline-none transition
