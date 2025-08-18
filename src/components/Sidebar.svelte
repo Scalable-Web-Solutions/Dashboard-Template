@@ -6,14 +6,15 @@
     { name: 'Overview', icon: BarChart3, href: '/' },
     { name: 'Users', icon: Users, href: '/users' },
     { name: 'CRM', icon: TrendingUp, href: '/crm' },
+    { name: 'Experiments', icon: ChartBar, href: '/experiments' },
+
   ];
   let current = 'Overview';
 
-  const navigate = (href: string) => {
-    current = href;
-    window.location.href = href;
+  const navigate = (href: NavItem) => {
+    current = href.name;
+    window.location.href = href.href;
   };
-
 
 
 </script>
@@ -29,9 +30,9 @@
     </div>
 
     <!-- main nav -->
-    <ul class="h-full flex flex-col justify-center gap-10">
+    <ul  class="h-full flex flex-col justify-center gap-10">
       {#each navigation as item}
-        <li on:click={() => navigate(item.href)}>
+        <li on:click={() => navigate(item)}>
 
 
           <a
@@ -39,7 +40,6 @@
             class="relative group flex items-center gap-3 rounded-xl px-3 py-2 outline-none transition
                    hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-white/60"
             aria-current={current === item.name ? 'page' : undefined}
-            on:click|preventDefault={() => (current = item.name)}
           >
             <!-- active bar -->
             <span class={`absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r ${current === item.name ? 'bg-white' : 'bg-transparent'}`} />

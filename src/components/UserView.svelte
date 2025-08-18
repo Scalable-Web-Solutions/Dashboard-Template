@@ -1,140 +1,64 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import MetricCard from "./MetricCard.svelte";
-  import Chart from "./Chart.svelte";
-  import TimeSelector from "./TimeSelector.svelte";
-  import { Users, UserPlus, UserCheck, Activity } from "lucide-svelte";
+  import MetricCard from '../components/MetricCard.svelte';
+  import Chart from '../components/Chart.svelte';
+  import TimeSelector from '../components/TimeSelector.svelte';
+  import { Users, Activity, UserPlus, UserCheck } from 'lucide-svelte';
+  import { authReady, user } from '$lib/stores/auth';
 
-  // These will be fetched from Firebase
-  let userSegments = [
-    { segment: 'New Users', count: 0, percentage: 0, color: 'bg-blue-500' },
-    { segment: 'Returning Users', count: 0, percentage: 0, color: 'bg-green-500' }
-  ];
-  let topPages: any[] = [];
+  // state
+  let loading = true;
+  let project = 'scalable-web-solutions';
+  let days = 7;
 
-  let uniqueUsersData: any[] = [];
-  let totalSessionsData: any[] = [];
-  let labels: string[] = [];
-
+  // metrics
   let totalUniqueUsers = 0;
   let totalSessions = 0;
   let newUsers = 0;
   let returningUsers = 0;
-  let uniqueChange = 0;
-  let sessionsChange = 0;
-  let newUsersChange = 0;
-  let returningChange = 0;
 
-  let loading = true;
-  let project = "";
+  // series
+  let labels: string[] = [];
+  let uniqueUsersData: number[] = [];
+  let totalSessionsData: number[] = [];
 
-  function waitForFirebase() {
-    return new Promise<void>((resolve) => {
-      if (typeof window !== "undefined" && window.firebase && window.firebase.firestore) {
-        resolve();
-      } else {
-        setTimeout(() => resolve(waitForFirebase()), 50);
+  // segments + top pages
+  let userSegments: Array<{ segment: string; count: number; percentage: number; color: string }> = [];
+  let topPages: Array<{ page: string; uniqueUsers: number; totalSessions: number }> = [];
+
+  async function loadData() {
+    try {
+      const res = await fetch(
+        `/api/users?projectId=${encodeURIComponent(project)}&days=${days}`,
+        { cache: 'no-store' }
+      );
+      if (!res.ok) {
+        const txt = await res.text();
+        console.error('Users API error', res.status, txt);
+        throw new Error(`Users API ${res.status}`);
       }
-    });
+      const data = await res.json();
+
+      totalUniqueUsers = Number(data.totalUniqueUsers || 0);
+      totalSessions    = Number(data.totalSessions || 0);
+      newUsers         = Number(data.newUsers || 0);
+      returningUsers   = Number(data.returningUsers || 0);
+
+      labels            = data.labels ?? [];
+      uniqueUsersData   = data.uniqueUsersData ?? [];
+      totalSessionsData = data.totalSessionsData ?? [];
+
+      userSegments = Array.isArray(data.userSegments) ? data.userSegments : [];
+      topPages     = Array.isArray(data.topPages) ? data.topPages : [];
+    } catch (e) {
+      console.error('loadData(users) failed', e);
+      // keep defaults
+    } finally {
+      loading = false;
+    }
   }
 
-  onMount(async () => {
-    project = "scalable-web-solutions";
-    await waitForFirebase();
-
-    // Get Firestore reference
-    const db = window.firebase.firestore();
-
-    // Pull all events for this client in the last 7 days
-    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    const eventsRef = db.collection("clients").doc(project).collection("events");
-    const snap = await eventsRef.where("timestamp", ">", weekAgo).get();
-
-    // --- Analytics Calculation Logic ---
-    let usersSet = new Set();
-    let sessionsSet = new Set();
-    let pageMap = {};
-    let newUserIds = new Set();
-    let returningUserIds = new Set();
-
-    let perDayUnique = {};
-    let perDaySessions = {};
-
-    snap.forEach(doc => {
-      const data = doc.data();
-      // Unique Users
-      if (data.anonUserId) {
-        usersSet.add(data.anonUserId);
-
-        // New vs Returning (you can adjust this logic as needed)
-        if (!newUserIds.has(data.anonUserId) && data.type === "pageview") {
-          if (data.timestamp - weekAgo < 24 * 60 * 60 * 1000) {
-            newUserIds.add(data.anonUserId);
-          } else {
-            returningUserIds.add(data.anonUserId);
-          }
-        }
-      }
-
-      // Sessions
-      if (data.sessionId) {
-        sessionsSet.add(data.sessionId);
-      }
-
-      // Pages
-      if (data.url) {
-        if (!pageMap[data.url]) {
-          pageMap[data.url] = { uniqueUsers: new Set(), totalSessions: new Set() };
-        }
-        if (data.anonUserId) pageMap[data.url].uniqueUsers.add(data.anonUserId);
-        if (data.sessionId) pageMap[data.url].totalSessions.add(data.sessionId);
-      }
-
-      // Per day charts
-      if (data.timestamp) {
-        const day = new Date(data.timestamp).toLocaleDateString(undefined, { weekday: "short" });
-        perDayUnique[day] = perDayUnique[day] || new Set();
-        perDaySessions[day] = perDaySessions[day] || new Set();
-        if (data.anonUserId) perDayUnique[day].add(data.anonUserId);
-        if (data.sessionId) perDaySessions[day].add(data.sessionId);
-      }
-    });
-
-    // Top Pages
-    topPages = Object.entries(pageMap)
-      .map(([page, stats]) => ({
-        page,
-        uniqueUsers: stats.uniqueUsers.size,
-        totalSessions: stats.totalSessions.size,
-      }))
-      .sort((a, b) => b.uniqueUsers - a.uniqueUsers)
-      .slice(0, 5);
-
-    // User Segments (very basic: counts and percentage)
-    newUsers = newUserIds.size;
-    returningUsers = returningUserIds.size;
-    totalUniqueUsers = usersSet.size;
-    totalSessions = sessionsSet.size;
-
-    userSegments = [
-      { segment: 'New Users', count: newUsers, percentage: totalUniqueUsers ? Math.round((newUsers / totalUniqueUsers) * 100) : 0, color: 'bg-blue-500' },
-      { segment: 'Returning Users', count: returningUsers, percentage: totalUniqueUsers ? Math.round((returningUsers / totalUniqueUsers) * 100) : 0, color: 'bg-green-500' }
-    ];
-
-    // Charts
-    // We'll use last 7 unique weekdays as X axis
-    const days = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(Date.now() - (6 - i) * 24 * 60 * 60 * 1000);
-      return d.toLocaleDateString(undefined, { weekday: "short" });
-    });
-
-    uniqueUsersData = days.map(day => (perDayUnique[day] ? perDayUnique[day].size : 0));
-    totalSessionsData = days.map(day => (perDaySessions[day] ? perDaySessions[day].size : 0));
-    labels = days;
-
-    // You can also calculate % change for metrics (not shown here)
-    loading = false;
-  });
+  // re-run when auth ready
+  $: if ($authReady && $user && loading) loadData().catch(console.error);
 </script>
 
 {#if loading}
@@ -144,16 +68,19 @@
     <div class="mb-6">
       <TimeSelector />
     </div>
+
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <MetricCard title="Unique Users" value={totalUniqueUsers.toLocaleString()} change="N/A" changeType="neutral" icon={Users} />
-      <MetricCard title="Total Sessions" value={totalSessions.toLocaleString()} change="N/A" changeType="neutral" icon={Activity} />
-      <MetricCard title="New Users" value={newUsers.toLocaleString()} change="N/A" changeType="neutral" icon={UserPlus} />
-      <MetricCard title="Returning Users" value={returningUsers.toLocaleString()} change="N/A" changeType="neutral" icon={UserCheck} />
+      <MetricCard title="Unique Users"    value={totalUniqueUsers.toLocaleString()} change="N/A" changeType="neutral" icon={Users} />
+      <MetricCard title="Total Sessions"  value={totalSessions.toLocaleString()}   change="N/A" changeType="neutral" icon={Activity} />
+      <MetricCard title="New Users"       value={newUsers.toLocaleString()}        change="N/A" changeType="neutral" icon={UserPlus} />
+      <MetricCard title="Returning Users" value={returningUsers.toLocaleString()}  change="N/A" changeType="neutral" icon={UserCheck} />
     </div>
+
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-      <Chart title="Unique Users This Week" data={uniqueUsersData} labels={labels} type="line" />
-      <Chart title="Total Sessions This Week" data={totalSessionsData} labels={labels} type="bar" />
+      <Chart title="Unique Users This Period" data={uniqueUsersData} labels={labels} type="area" />
+      <Chart title="Sessions This Period"     data={totalSessionsData} labels={labels} type="bar" />
     </div>
+
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">User Segments</h3>
@@ -179,6 +106,7 @@
           </div>
         </div>
       </div>
+
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Top Pages by Users</h3>
         <div class="space-y-4">
@@ -186,7 +114,7 @@
             <span>Page</span>
             <div class="flex space-x-8">
               <span>Unique</span>
-              <span>Total</span>
+              <span>Total Sessions</span>
             </div>
           </div>
           {#each topPages as page (page.page)}
@@ -196,7 +124,7 @@
               </div>
               <div class="flex space-x-8 text-sm">
                 <span class="text-blue-600 font-medium w-16 text-right">{page.uniqueUsers.toLocaleString()}</span>
-                <span class="text-gray-600 w-16 text-right">{page.totalSessions.toLocaleString()}</span>
+                <span class="text-gray-600 w-24 text-right">{page.totalSessions.toLocaleString()}</span>
               </div>
             </div>
           {/each}
