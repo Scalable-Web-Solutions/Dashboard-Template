@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { BarChart3, Users, TrendingUp, Search, Settings as SettingsIcon, FileSpreadsheet, ArrowLeft, ChartBar, Users as UsersIcon, ArrowUpRightFromCircle } from 'lucide-svelte';
+  import { BarChart3, Users, TrendingUp, Search, Settings as SettingsIcon, FileSpreadsheet, ArrowLeft, ChartBar, Users as UsersIcon, ArrowUpRightFromCircle, DollarSign } from 'lucide-svelte';
 
   type NavItem = { name: string; icon: any; href: string };
   const navigation: NavItem[] = [
@@ -7,6 +7,8 @@
     { name: 'Users', icon: Users, href: '/users' },
     { name: 'CRM', icon: TrendingUp, href: '/crm' },
     { name: 'Experiments', icon: ChartBar, href: '/experiments' },
+    { name: 'Sales', icon: DollarSign, href: '/sales' },
+
 
   ];
   let current = 'Overview';
