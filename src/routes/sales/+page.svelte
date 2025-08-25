@@ -22,6 +22,31 @@
     }
   }
 
+  let salesScripts = [
+    {
+      name: 'Sales Script 1',
+      id: 1,
+      clicks: 1234,
+      conversions: 123,
+      revenue: 12345,
+    },
+    {
+      name: 'Sales Script 2',
+      id: 2,
+      clicks: 1234,
+      conversions: 123,
+      revenue: 12345,
+    },
+    {
+      name: 'Sales Script 3',
+      id: 3,
+      clicks: 1234,
+      conversions: 123,
+      revenue: 12345,
+    },
+  ];
+
+
   // re-run when auth ready
   $: if ($authReady && $user && loading) loadData().catch(console.error);
 </script>
@@ -38,41 +63,26 @@
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 w-full">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Select Sales Script to Track</h3>
           <div class="space-y-4">
-            <div class="flex items-center justify-between">
-              <span class="text-sm font-medium text-gray-500">Sales Script 1</span>
-              <span class="text-sm font-medium text-gray-500">1,234</span>
-              <button class="text-sm font-medium text-blue-600">Select</button>
-            </div>
-            <div class="flex items-center justify-between">
-              <span class="text-sm font-medium text-gray-500">Sales Script 2</span>
-              <span class="text-sm font-medium text-gray-500">1,234</span>
-              <button class="text-sm font-medium text-blue-600">Select</button>
-            </div>
-            <div class="flex items-center justify-between">
-              <span class="text-sm font-medium text-gray-500">Sales Script 3</span>
-              <span class="text-sm font-medium text-gray-500">1,234</span>
-              <button class="text-sm font-medium text-blue-600">Select</button>
-            </div>
+            {#each salesScripts as script}
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-medium text-gray-500">{script.name}</span>
+                <span class="text-sm font-medium text-gray-500">{script.clicks}</span>
+                <button class="text-sm font-medium text-blue-600">Select</button>
+              </div>
+            {/each}
           </div>
         </div>
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 w-full">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Select Sales Script to Compare</h3>
           <div class="space-y-4">
-            <div class="flex items-center justify-between">
-              <span class="text-sm font-medium text-gray-500">Sales Script 1</span>
-              <span class="text-sm font-medium text-gray-500">1,234</span>
-              <button class="text-sm font-medium text-blue-600">Select</button>
-            </div>
-            <div class="flex items-center justify-between">
-              <span class="text-sm font-medium text-gray-500">Sales Script 2</span>
-              <span class="text-sm font-medium text-gray-500">1,234</span>
-              <button class="text-sm font-medium text-blue-600">Select</button>
-            </div>
-            <div class="flex items-center justify-between">
-              <span class="text-sm font-medium text-gray-500">Sales Script 3</span>
-              <span class="text-sm font-medium text-gray-500">1,234</span>
-              <button class="text-sm font-medium text-blue-600">Select</button>
-            </div>
+            {#each salesScripts as script}
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-medium text-gray-500">{script.name}</span>
+                <span class="text-sm font-medium text-gray-500">{script.clicks}</span>
+                <button class="text-sm font-medium text-blue-600">Select</button>
+              </div>
+            {/each}
+
           </div>
         </div>
     </div>
@@ -81,14 +91,14 @@
       <div>
         <h1>Showing Performance for Sales Script 1</h1>
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 w-full">
-          <Chart />
+          <Chart title="Clicks" data={[1234, 1010, 1500, 2852, 1002, 900, 2000]} labels={['1', '2', '3', '4', '5', '6', '7']} />
         </div>
 
       </div>
       <div>
         <h1>Showing Performance for Sales Script 2</h1>
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 w-full">
-          <Chart />
+          <Chart title="Clicks" data={[1992, 5923, 3382, 2852, 2052, 921, 4209]} labels={['1', '2', '3', '4', '5', '6', '7']} />
         </div>
       </div>
     </div>
