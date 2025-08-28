@@ -1,15 +1,16 @@
 // src/routes/api/overview/+server.ts
-import type { RequestHandler } from './overview/$types';
+import type { RequestHandler } from '@sveltejs/kit';
 import { adminDb, AdminTimestamp } from '$lib/server/firebase-admin';
 
 export const GET: RequestHandler = async ({ url }) => {
   const project = url.searchParams.get('projectId') ?? 'scalable-web-solutions';
   const days = Number(url.searchParams.get('days') ?? 7);
-  const start = AdminTimestamp.fromMillis(Date.now() - days * 24 * 60 * 60 * 1000);
+  const now = Date.now();
+  const start = AdminTimestamp.fromMillis(now - days * 864e5);
 
   const events = adminDb.collection(`clients/${project}/events`);
 
-  // Cheap counts with Admin aggregation
+  // Cheap totals via aggregations (no doc scans)
   const [pvAggSnap, ctaAggSnap] = await Promise.all([
     events.where('timestamp', '>=', start).where('type', '==', 'pageview').count().get(),
     events.where('timestamp', '>=', start).where('type', '==', 'cta_click').count().get(),
@@ -18,8 +19,14 @@ export const GET: RequestHandler = async ({ url }) => {
   const totalPageViews = pvAggSnap.data().count || 0;
   const totalCtaClicks = ctaAggSnap.data().count || 0;
 
-  // If you still want daily series, you can do one bounded read here (or materialize daily docs later)
-  const snap = await events.where('timestamp', '>=', start).orderBy('timestamp', 'asc').get();
+  // --- OPTION A: still one scan, but only pageviews, and only the fields you need
+  // This avoids reading CTA docs entirely and trims bandwidth with .select(...)
+  const snap = await events
+    .where('timestamp', '>=', start)
+    .where('type', '==', 'pageview')
+    .orderBy('timestamp', 'asc')
+    .select('timestamp', 'sessionId', 'anonUserId', 'type') // field mask
+    .get();
 
   const users = new Set<string>();
   const perDayPV: Record<string, number> = {};
@@ -30,15 +37,16 @@ export const GET: RequestHandler = async ({ url }) => {
     if (data.anonUserId) users.add(String(data.anonUserId));
     const ts: Date = data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp);
     const day = ts.toISOString().slice(0, 10);
-    if (data.type === 'pageview') {
-      perDayPV[day] = (perDayPV[day] || 0) + 1;
-      perDaySessions[day] ??= new Set<string>();
-      if (data.sessionId) perDaySessions[day]!.add(String(data.sessionId));
-    }
+
+    perDayPV[day] = (perDayPV[day] || 0) + 1;
+    perDaySessions[day] ??= new Set<string>();
+    if (data.sessionId) perDaySessions[day]!.add(String(data.sessionId));
   });
 
   const labels: string[] = [];
-  for (let i = days - 1; i >= 0; i--) labels.push(new Date(Date.now() - i*864e5).toISOString().slice(0,10));
+  for (let i = days - 1; i >= 0; i--) {
+    labels.push(new Date(now - i * 864e5).toISOString().slice(0, 10));
+  }
 
   const body = {
     totalUsers: users.size,

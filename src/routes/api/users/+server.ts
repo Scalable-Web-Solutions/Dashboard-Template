@@ -10,9 +10,13 @@ export const GET: RequestHandler = async ({ url }) => {
   const events = adminDb.collection(`clients/${project}/events`);
 
   // Pull just the window we care about (ordered for per-user firstSeen-in-window)
+  // CHANGE 1: restrict to pageviews (you only use these for users/sessions/topPages)
+  // CHANGE 2: field mask to trim payload
   const snap = await events
     .where('timestamp', '>=', start)
+    .where('type', '==', 'pageview')
     .orderBy('timestamp', 'asc')
+    .select('timestamp', 'anonUserId', 'sessionId', 'url', 'type')
     .get();
 
   // Accumulators
@@ -22,7 +26,6 @@ export const GET: RequestHandler = async ({ url }) => {
   const perDaySessions = new Map<string, Set<string>>();// YYYY-MM-DD -> set of sessionId
   const topPages = new Map<string, { users: Set<string>; sessions: Set<string> }>();
 
-  // Helper
   const dayKey = (d: Date) => d.toISOString().slice(0, 10);
 
   snap.forEach((doc) => {
@@ -50,10 +53,7 @@ export const GET: RequestHandler = async ({ url }) => {
 
   // Series labels for last N days
   const labels: string[] = [];
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(now - i * 86400000);
-    labels.push(dayKey(d));
-  }
+  for (let i = days - 1; i >= 0; i--) labels.push(dayKey(new Date(now - i * 86400000)));
 
   const uniqueUsersData = labels.map((d) => perDayUsers.get(d)?.size ?? 0);
   const totalSessionsData = labels.map((d) => perDaySessions.get(d)?.size ?? 0);
@@ -64,35 +64,17 @@ export const GET: RequestHandler = async ({ url }) => {
   // Approx new/returning (within window)
   const windowStartMs = now - days * 86400000;
   let newUsers = 0;
-  users.forEach((firstSeenMs) => {
-    if (firstSeenMs >= windowStartMs) newUsers++;
-  });
+  users.forEach((firstSeenMs) => { if (firstSeenMs >= windowStartMs) newUsers++; });
   const returningUsers = Math.max(0, totalUniqueUsers - newUsers);
 
-  // Top pages array
   const topPagesArr = [...topPages.entries()]
-    .map(([page, sets]) => ({
-      page,
-      uniqueUsers: sets.users.size,
-      totalSessions: sets.sessions.size
-    }))
+    .map(([page, sets]) => ({ page, uniqueUsers: sets.users.size, totalSessions: sets.sessions.size }))
     .sort((a, b) => b.uniqueUsers - a.uniqueUsers)
     .slice(0, 20);
 
-  // Segments (you can extend later with device/geo/referrer)
   const userSegments = [
-    {
-      segment: 'New',
-      count: newUsers,
-      percentage: totalUniqueUsers ? Math.round((newUsers / totalUniqueUsers) * 100) : 0,
-      color: 'bg-indigo-500'
-    },
-    {
-      segment: 'Returning',
-      count: returningUsers,
-      percentage: totalUniqueUsers ? Math.round((returningUsers / totalUniqueUsers) * 100) : 0,
-      color: 'bg-emerald-500'
-    }
+    { segment: 'New',       count: newUsers,       percentage: totalUniqueUsers ? Math.round((newUsers / totalUniqueUsers) * 100) : 0, color: 'bg-indigo-500' },
+    { segment: 'Returning', count: returningUsers, percentage: totalUniqueUsers ? Math.round((returningUsers / totalUniqueUsers) * 100) : 0, color: 'bg-emerald-500' }
   ];
 
   const body = {

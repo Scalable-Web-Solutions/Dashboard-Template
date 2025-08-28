@@ -1,54 +1,112 @@
 <script lang="ts">
-  import MetricCard from '../../components/MetricCard.svelte';
-
-  import Chart from '../../components/Chart.svelte';
   import TimeSelector from '../../components/TimeSelector.svelte';
-  import { Users, Activity, UserPlus, UserCheck } from 'lucide-svelte';
   import { authReady, user } from '$lib/stores/auth';
 
+  import { onDestroy } from 'svelte';
+  import {
+    collection, onSnapshot, query,
+    doc, updateDoc, increment
+  } from 'firebase/firestore';
+  import { db } from '$lib/firebase';
+
+  export const ssr = false; // client-only since we use Firestore client SDK
+
   let loading = true;
-  let project = 'scalable-web-solutions';
-  let days = 7;
+
+  type SalesRow = {
+    id: string;
+    name: string;
+    one: number;    // Opening
+    two: number;    // Scheduled Call
+    three: number;  // Closed Deal
+  };
+
+  let salesScripts: SalesRow[] = [];
+  let unsub: null | (() => void) = null;
+
+  // selection state
+  let selectedPrimaryId: string | null = null;
+  let selectedCompareId: string | null = null;
+
+  const phaseLabels = {
+    one: 'Opening',
+    two: 'Scheduled Call',
+    three: 'Closed Deal'
+  } as const;
+
+  function toTitleCase(s: string) {
+    return s.replace(/[-_]/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase());
+  }
 
   async function loadData() {
-    try {
-      console.log('loadData(users)');
 
+    if (unsub) return;
+    try {
+      loading = true;
+      const q = query(collection(db, 'sales'));
+      unsub = onSnapshot(
+        q,
+        (snap) => {
+          const rows = snap.docs.map((d) => {
+            const data: any = d.data();
+            return {
+              id: d.id,
+              name: toTitleCase(d.id) || 'Untitled Script',
+              one: Number(data.one ?? 0),
+              two: Number(data.two ?? 0),
+              three: Number(data.three ?? 0)
+            } as SalesRow;
+          });
+
+          // stable sort by name
+          rows.sort((a, b) => a.name.localeCompare(b.name));
+
+          salesScripts = rows;
+
+          // initialize selected ids if empty
+          if (!selectedPrimaryId && rows.length) selectedPrimaryId = rows[0].id;
+          if (!selectedCompareId && rows.length > 1) selectedCompareId = rows[1].id;
+
+          loading = false;
+        },
+        (err) => {
+          console.error('sales onSnapshot error', err);
+          loading = false;
+        }
+      );
     } catch (e) {
-      console.error('loadData(users) failed', e);
-      // keep defaults
-    } finally {
+      console.error('loadData(sales) failed', e);
       loading = false;
     }
   }
 
-  let salesScripts = [
-    {
-      name: 'Sales Script 1',
-      id: 1,
-      clicks: 1234,
-      conversions: 123,
-      revenue: 12345,
-    },
-    {
-      name: 'Sales Script 2',
-      id: 2,
-      clicks: 1234,
-      conversions: 123,
-      revenue: 12345,
-    },
-    {
-      name: 'Sales Script 3',
-      id: 3,
-      clicks: 1234,
-      conversions: 123,
-      revenue: 12345,
-    },
-  ];
-
-
-  // re-run when auth ready
+  // run when auth is ready
   $: if ($authReady && $user && loading) loadData().catch(console.error);
+
+  onDestroy(() => { if (unsub) { unsub(); unsub = null; } });
+
+  // derived selections
+  $: primary = salesScripts.find(s => s.id === selectedPrimaryId) ?? null;
+  $: compare = salesScripts.find(s => s.id === selectedCompareId) ?? null;
+
+  // update form
+  let saving = false;
+  async function handleSubmit(ev: SubmitEvent) {
+    ev.preventDefault();
+    const fd = new FormData(ev.currentTarget as HTMLFormElement);
+    const scriptId = String(fd.get('salesScript') || '');
+    const phaseKey = String(fd.get('phase') || ''); // 'one' | 'two' | 'three'
+    if (!scriptId || !phaseKey) return;
+
+    try {
+      saving = true;
+      await updateDoc(doc(db, 'sales', scriptId), { [phaseKey]: increment(1) });
+    } catch (e) {
+      console.error('update failed', e);
+    } finally {
+      saving = false;
+    }
+  }
 </script>
 
 {#if loading}
@@ -59,86 +117,133 @@
       <TimeSelector />
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mb-8">
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 w-full">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">Select Sales Script to Track</h3>
-          <div class="space-y-4">
-            {#each salesScripts as script}
-              <div class="flex items-center justify-between">
-                <span class="text-sm font-medium text-gray-500">{script.name}</span>
-                <span class="text-sm font-medium text-gray-500">{script.clicks}</span>
-                <button class="text-sm font-medium text-blue-600">Select</button>
-              </div>
-            {/each}
-          </div>
-        </div>
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 w-full">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">Select Sales Script to Compare</h3>
-          <div class="space-y-4">
-            {#each salesScripts as script}
-              <div class="flex items-center justify-between">
-                <span class="text-sm font-medium text-gray-500">{script.name}</span>
-                <span class="text-sm font-medium text-gray-500">{script.clicks}</span>
-                <button class="text-sm font-medium text-blue-600">Select</button>
-              </div>
-            {/each}
-
-          </div>
-        </div>
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-      <div>
-        <h1>Showing Performance for Sales Script 1</h1>
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 w-full">
-          <Chart title="Clicks" data={[1234, 1010, 1500, 2852, 1002, 900, 2000]} labels={['1', '2', '3', '4', '5', '6', '7']} />
-        </div>
-
-      </div>
-      <div>
-        <h1>Showing Performance for Sales Script 2</h1>
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 w-full">
-          <Chart title="Clicks" data={[1992, 5923, 3382, 2852, 2052, 921, 4209]} labels={['1', '2', '3', '4', '5', '6', '7']} />
-        </div>
-      </div>
-    </div>
-
-
-    <div class="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-8">
-      <div>
-        <h1>Update Data</h1>
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 w-full">
-          <form>
-            <div class="mb-4">
-              <label for="salesScript" class="block text-sm font-medium text-gray-700">Sales Script</label>
-              <select id="salesScript" name="salesScript" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
-                <option value="1">Sales Script 1</option>
-                <option value="2">Sales Script 2</option>
-                <option value="3">Sales Script 3</option>
-              </select>
+    <!-- Selectors -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 w-full">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Select Sales Script to Track</h3>
+        <div class="space-y-3">
+          {#each salesScripts as script}
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-medium text-gray-800">{script.name}</span>
+              <button
+                class="text-sm font-medium text-blue-600"
+                aria-pressed={selectedPrimaryId === script.id}
+                on:click={() => selectedPrimaryId = script.id}
+              >
+                {selectedPrimaryId === script.id ? 'Selected' : 'Select'}
+              </button>
             </div>
-            <div class="mb-4">
+          {/each}
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 w-full">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Select Sales Script to Compare</h3>
+        <div class="space-y-3">
+          {#each salesScripts as script}
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-medium text-gray-800">{script.name}</span>
+              <button
+                class="text-sm font-medium text-blue-600"
+                aria-pressed={selectedCompareId === script.id}
+                on:click={() => selectedCompareId = script.id}
+              >
+                {selectedCompareId === script.id ? 'Selected' : 'Select'}
+              </button>
+            </div>
+          {/each}
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats (no charts) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 w-full">
+        <h2 class="text-lg font-semibold mb-4">
+          {#if primary}Showing Performance for {primary.name}{:else}Select a script{/if}
+        </h2>
+        {#if primary}
+          <div class="grid grid-cols-3 gap-4">
+            <div class="rounded-lg border border-gray-200 p-4">
+              <div class="text-xs text-gray-500">{phaseLabels.one}</div>
+              <div class="text-2xl font-semibold">{primary.one}</div>
+            </div>
+            <div class="rounded-lg border border-gray-200 p-4">
+              <div class="text-xs text-gray-500">{phaseLabels.two}</div>
+              <div class="text-2xl font-semibold">{primary.two}</div>
+            </div>
+            <div class="rounded-lg border border-gray-200 p-4">
+              <div class="text-xs text-gray-500">{phaseLabels.three}</div>
+              <div class="text-2xl font-semibold">{primary.three}</div>
+            </div>
+          </div>
+        {/if}
+      </div>
+
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 w-full">
+        <h2 class="text-lg font-semibold mb-4">
+          {#if compare}Showing Performance for {compare.name}{:else}Select a script{/if}
+        </h2>
+        {#if compare}
+          <div class="grid grid-cols-3 gap-4">
+            <div class="rounded-lg border border-gray-200 p-4">
+              <div class="text-xs text-gray-500">{phaseLabels.one}</div>
+              <div class="text-2xl font-semibold">{compare.one}</div>
+            </div>
+            <div class="rounded-lg border border-gray-200 p-4">
+              <div class="text-xs text-gray-500">{phaseLabels.two}</div>
+              <div class="text-2xl font-semibold">{compare.two}</div>
+            </div>
+            <div class="rounded-lg border border-gray-200 p-4">
+              <div class="text-xs text-gray-500">{phaseLabels.three}</div>
+              <div class="text-2xl font-semibold">{compare.three}</div>
+            </div>
+          </div>
+        {/if}
+      </div>
+    </div>
+
+    <!-- Update Data -->
+    <div class="grid grid-cols-1 gap-6 mb-8">
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 w-full">
+        <h2 class="text-lg font-semibold mb-4">Update Data</h2>
+        <form on:submit|preventDefault={handleSubmit} class="space-y-4">
+          <div>
+            <label for="salesScript" class="block text-sm font-medium text-gray-700">Sales Script</label>
+            <select id="salesScript" name="salesScript" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
+              {#each salesScripts as s}
+                <option value={s.id}>{s.name}</option>
+              {/each}
+            </select>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
               <label for="date" class="block text-sm font-medium text-gray-700">Date</label>
               <input type="date" id="date" name="date" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
             </div>
-            <div class="mb-4">
+            <div>
               <label for="time" class="block text-sm font-medium text-gray-700">Time</label>
               <input type="time" id="time" name="time" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
             </div>
-            <div class="mb-4">
-              <label for="leads" class="block text-sm font-medium text-gray-700">Furthest Phase</label>
+          </div>
 
-              <select id="salesScript" name="salesScript" class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
-                <option value="1">Opening</option>
-                <option value="2">Scheduled Call</option>
-                <option value="3">Closed Deal</option>
-              </select>
-            </div>
-            <input type="submit" value="Update" class="bg-blue-500 text-white px-4 py-2 rounded-md">
-            <input type="reset" value="Reset" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md">
+          <div>
+            <label for="phase" class="block text-sm font-medium text-gray-700">Furthest Phase</label>
+            <select id="phase" name="phase" class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
+              <option value="one">{phaseLabels.one}</option>
+              <option value="two">{phaseLabels.two}</option>
+              <option value="three">{phaseLabels.three}</option>
+            </select>
+          </div>
 
+          <div class="flex items-center gap-3">
+            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md disabled:opacity-50" disabled={saving}>
+              {saving ? 'Updating…' : 'Update'}
+            </button>
+            <input type="reset" value="Reset" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-md" />
+          </div>
         </form>
-        </div>
       </div>
     </div>
   </div>
