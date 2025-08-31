@@ -1,7 +1,5 @@
 // src/lib/server/firebase-admin.ts
 import admin from 'firebase-admin';
-import { PROJECT_ID, CLIENT_EMAIL, PRIVATE_KEY } from '$env/static/private';
-
 
 if (!admin.apps.length) {
   admin.initializeApp({

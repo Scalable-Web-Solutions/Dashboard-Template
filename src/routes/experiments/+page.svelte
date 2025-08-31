@@ -1,6 +1,6 @@
 <script lang="ts">
   // inside +page.svelte (script)
-const PROJECT_ID = 'scalable-web-solutions';
+const projectId = 'scalable-web-solutions';
 const ACTIVE_EXPERIMENTS = [
   { id: 'hero_banner',       variants: ['control', 'big'] },
   { id: 'contact_block_v1',  variants: ['control', 'alt'] }
@@ -23,7 +23,7 @@ async function run() {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
-      projectId: PROJECT_ID,
+      projectId: projectId,
       experiments: ACTIVE_EXPERIMENTS,
       buttonId, goal, range
     })
