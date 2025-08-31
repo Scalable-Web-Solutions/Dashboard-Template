@@ -13,12 +13,20 @@
 
   let loading = true;
 
+  /*
+    ID
+    Sales Script Name
+    Opening phase
+    Call phase
+    Closed deal phase
+  */
+
   type SalesRow = {
     id: string;
     name: string;
-    one: number;    // Opening
-    two: number;    // Scheduled Call
-    three: number;  // Closed Deal
+    one: number;
+    two: number;
+    three: number; 
   };
 
   let salesScripts: SalesRow[] = [];
